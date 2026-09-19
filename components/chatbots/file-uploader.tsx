@@ -119,6 +119,25 @@ export function FileUploader({
       setUploadState("processing")
       setProcessingStep(1)
 
+      const recordResponse = await fetch(
+        `/api/chatbots/${chatbotId}/documents/record`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            key: data.key,
+            filename: file.name,
+            fileSize: file.size,
+          }),
+        }
+      )
+      const recordData = await recordResponse.json()
+      if (!recordResponse.ok) {
+        throw new Error(
+          recordData.error || "Could not save the uploaded file details."
+        )
+      }
+
       const ingestionResponse = await fetch(
         `/api/chatbots/${chatbotId}/ingest`,
         {

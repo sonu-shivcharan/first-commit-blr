@@ -1,5 +1,9 @@
 import { DeleteObjectsCommand, ListObjectsV2Command } from "@aws-sdk/client-s3"
-import { DeleteCommand } from "@aws-sdk/lib-dynamodb"
+import {
+  BatchWriteCommand,
+  DeleteCommand,
+  ScanCommand,
+} from "@aws-sdk/lib-dynamodb"
 import { auth } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 
@@ -56,6 +60,29 @@ export async function DELETE(
         ExpressionAttributeValues: { ":userId": userId },
       })
     )
+
+    const datasourceRecords = await dynamodb.send(
+      new ScanCommand({
+        TableName: "datasources",
+        FilterExpression: "chatbotId = :chatbotId",
+        ExpressionAttributeValues: { ":chatbotId": chatbotId },
+      })
+    )
+    const datasourceKeys = (datasourceRecords.Items ?? [])
+      .map((item) => item.id)
+      .filter((id): id is string => typeof id === "string")
+
+    if (datasourceKeys.length > 0) {
+      await dynamodb.send(
+        new BatchWriteCommand({
+          RequestItems: {
+            datasources: datasourceKeys.map((id) => ({
+              DeleteRequest: { Key: { id } },
+            })),
+          },
+        })
+      )
+    }
 
     return NextResponse.json({ deleted: true })
   } catch (error) {

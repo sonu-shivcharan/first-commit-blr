@@ -1,9 +1,10 @@
-import { ListObjectsV2Command } from "@aws-sdk/client-s3"
+import { ScanCommand } from "@aws-sdk/lib-dynamodb"
 import { auth } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 
 import { getOwnedChatbot } from "@/lib/aws/chatbots"
-import { s3Client } from "@/lib/aws/s3"
+import { dynamodb } from "@/lib/aws/dynamodb"
+import { initializeDatabase } from "@/lib/aws/init-db"
 
 export async function GET(
   _request: Request,
@@ -24,20 +25,30 @@ export async function GET(
   }
 
   try {
-    const result = await s3Client.send(
-      new ListObjectsV2Command({
-        Bucket: process.env.AWS_S3_BUCKET_NAME,
-        Prefix: `chatbots/${chatbotId}/documents/`,
+    await initializeDatabase()
+    const result = await dynamodb.send(
+      new ScanCommand({
+        TableName: "datasources",
+        FilterExpression: "chatbotId = :chatbotId",
+        ExpressionAttributeValues: { ":chatbotId": chatbotId },
       })
     )
 
     return NextResponse.json(
-      (result.Contents ?? [])
-        .filter((file) => file.Key && !file.Key.endsWith("/"))
+      (result.Items ?? [])
+        .sort((first, second) =>
+          String(second.createdAt ?? "").localeCompare(
+            String(first.createdAt ?? "")
+          )
+        )
         .map((file) => ({
-          name: file.Key!.split("/").pop(),
-          size: file.Size ?? 0,
-          uploadedAt: file.LastModified?.toISOString() ?? null,
+          id: file.id,
+          name: file.filename,
+          size: file.fileSize,
+          s3Key: file.s3Key,
+          s3Uri: file.s3Uri,
+          dataSourceId: file.dataSourceId,
+          uploadedAt: file.createdAt,
         }))
     )
   } catch (error) {
