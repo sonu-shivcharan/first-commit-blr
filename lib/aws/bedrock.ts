@@ -9,6 +9,20 @@ export const bedrockAgent = new BedrockAgentClient({
   region: process.env.AWS_REGION,
 })
 
+export function getChatModelArn() {
+  const region = requireEnvironment("AWS_REGION")
+  const modelArn = requireEnvironment("BEDROCK_CHAT_MODEL_ARN")
+  const arnRegion = modelArn.match(/^arn:aws:bedrock:([^:]+):/)?.[1]
+
+  if (arnRegion && arnRegion !== region) {
+    throw new Error(
+      `BEDROCK_CHAT_MODEL_ARN uses ${arnRegion}, but AWS_REGION is ${region}. Use an inference profile ARN in the same region.`
+    )
+  }
+
+  return modelArn
+}
+
 const embeddingModelArn =
   process.env.BEDROCK_EMBEDDING_MODEL_ARN ??
   `arn:aws:bedrock:${process.env.AWS_REGION}::foundation-model/amazon.titan-embed-text-v2:0`

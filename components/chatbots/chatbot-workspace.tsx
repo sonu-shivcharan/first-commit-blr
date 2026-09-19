@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 
 import { ChatbotForm } from "@/components/chatbots/chatbot-form"
 import { FileUploader } from "@/components/chatbots/file-uploader"
@@ -29,6 +30,7 @@ type Chatbot = {
 }
 
 export function ChatbotWorkspace() {
+  const router = useRouter()
   const [showForm, setShowForm] = useState(false)
   const [chatbots, setChatbots] = useState<Chatbot[]>([])
   const [chatbot, setChatbot] = useState<Chatbot | null>(null)
@@ -163,7 +165,7 @@ export function ChatbotWorkspace() {
                 >
                   <button
                     type="button"
-                    onClick={() => setChatbot(item)}
+                    onClick={() => router.push(`/chatbots/${item.id}`)}
                     className="w-full px-4 py-3 text-left"
                   >
                     <p className="text-sm font-semibold">{item.name}</p>

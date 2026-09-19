@@ -16,11 +16,15 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024
 
 type FileUploaderProps = {
   chatbotId: string
+  onUploadComplete?: () => void
 }
 
 type UploadState = "idle" | "uploading" | "processing" | "success" | "error"
 
-export function FileUploader({ chatbotId }: FileUploaderProps) {
+export function FileUploader({
+  chatbotId,
+  onUploadComplete,
+}: FileUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
   const [uploadState, setUploadState] = useState<UploadState>("idle")
@@ -149,6 +153,7 @@ export function FileUploader({ chatbotId }: FileUploaderProps) {
         if (statusData.status === "COMPLETE") {
           setProcessingStep(3)
           setUploadState("success")
+          onUploadComplete?.()
           return
         }
         if (["FAILED", "STOPPED", "DELETING"].includes(statusData.status)) {

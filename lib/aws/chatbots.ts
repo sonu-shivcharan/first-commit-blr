@@ -13,12 +13,16 @@ export type ChatbotRecord = {
 }
 
 export async function getOwnedChatbot(chatbotId: string, userId: string) {
+  const chatbot = await getChatbot(chatbotId)
+  return chatbot?.userId === userId ? chatbot : null
+}
+
+export async function getChatbot(chatbotId: string) {
   const result = await dynamodb.send(
     new GetCommand({
       TableName: "chatbots",
       Key: { id: chatbotId },
     })
   )
-  const chatbot = result.Item as ChatbotRecord | undefined
-  return chatbot?.userId === userId ? chatbot : null
+  return result.Item as ChatbotRecord | undefined
 }
