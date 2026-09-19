@@ -11,6 +11,7 @@ import {
 } from "@tabler/icons-react"
 
 import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024
 
@@ -216,13 +217,14 @@ export function FileUploader({
             <p className="mt-4 max-w-full truncate rounded-md bg-zinc-100 px-3 py-2 font-mono text-xs text-zinc-500 dark:bg-zinc-800">
               {uploadedKey}
             </p>
-            <button
+            <Button
               type="button"
               onClick={clearFile}
-              className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 hover:text-emerald-800 dark:text-emerald-400"
+              variant="link"
+              className="mt-6"
             >
               <IconRefresh size={17} /> Upload another file
-            </button>
+            </Button>
           </div>
         ) : file ? (
           <div>
@@ -237,14 +239,15 @@ export function FileUploader({
                 </p>
               </div>
               {!isBusy && (
-                <button
+                <Button
                   type="button"
                   onClick={clearFile}
                   aria-label="Remove selected file"
-                  className="rounded-full p-2 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                  variant="ghost"
+                  size="icon-sm"
                 >
                   <IconX size={19} />
-                </button>
+                </Button>
               )}
             </div>
 
@@ -290,11 +293,11 @@ export function FileUploader({
               </p>
             )}
 
-            <button
+            <Button
               type="button"
               onClick={uploadFile}
               disabled={isBusy}
-              className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-wait disabled:opacity-70 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+              className="mt-7 h-11 w-full rounded-xl"
             >
               {isBusy ? (
                 <IconLoader2 className="animate-spin" size={18} />
@@ -308,7 +311,7 @@ export function FileUploader({
                 : uploadState === "error"
                   ? "Try again"
                   : "Upload file"}
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="flex flex-col items-center text-center">
@@ -321,13 +324,13 @@ export function FileUploader({
             <p className="mt-1 text-sm text-zinc-500">
               or choose one from your device
             </p>
-            <button
+            <Button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="mt-6 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+              className="mt-6 rounded-xl"
             >
               Choose file
-            </button>
+            </Button>
             <p className="mt-5 text-xs text-zinc-400">
               Maximum file size: 100 MB
             </p>

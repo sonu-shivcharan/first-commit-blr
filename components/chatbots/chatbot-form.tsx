@@ -2,6 +2,9 @@
 
 import { FormEvent, useState } from "react"
 
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+
 type SubmitState = "idle" | "submitting" | "success" | "error"
 
 type Chatbot = {
@@ -59,12 +62,12 @@ export function ChatbotForm({ onCreated }: ChatbotFormProps) {
     <form className="space-y-5" onSubmit={createChatbot}>
       <label className="block">
         <span className="text-sm font-medium">Name</span>
-        <input
+        <Input
           required
           value={name}
           onChange={(event) => setName(event.target.value)}
           placeholder="Support assistant"
-          className="mt-2 h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm transition outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-zinc-700 dark:bg-zinc-950"
+          className="mt-2 h-11 rounded-xl border-input bg-background px-3"
         />
       </label>
 
@@ -80,13 +83,13 @@ export function ChatbotForm({ onCreated }: ChatbotFormProps) {
         />
       </label>
 
-      <button
+      <Button
         type="submit"
         disabled={isSubmitting}
-        className="flex h-11 w-full items-center justify-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60"
+        className="h-11 w-full rounded-xl"
       >
         {isSubmitting ? "Creating..." : "Create chatbot"}
-      </button>
+      </Button>
 
       {message && (
         <p

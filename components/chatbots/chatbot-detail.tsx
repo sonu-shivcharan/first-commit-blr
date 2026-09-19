@@ -1,10 +1,23 @@
 "use client"
 
 import { FormEvent, useEffect, useState } from "react"
-import { IconCheck, IconCopy, IconSend } from "@tabler/icons-react"
+import { IconCheck, IconCopy, IconSend, IconTrash } from "@tabler/icons-react"
+import { useRouter } from "next/navigation"
 
 import { FileUploader } from "@/components/chatbots/file-uploader"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import {
   Card,
   CardContent,
@@ -35,6 +48,7 @@ type ChatbotDetailProps = {
 type Tab = "details" | "sources" | "test"
 
 export function ChatbotDetail({ chatbot }: ChatbotDetailProps) {
+  const router = useRouter()
   const [tab, setTab] = useState<Tab>("details")
   const [files, setFiles] = useState<SourceFile[]>([])
   const [fileError, setFileError] = useState<string | null>(null)
@@ -46,6 +60,9 @@ export function ChatbotDetail({ chatbot }: ChatbotDetailProps) {
   const [sessionId, setSessionId] = useState("")
   const [publicUrl, setPublicUrl] = useState(`/chatbots/${chatbot.id}/public`)
   const [isLinkCopied, setIsLinkCopied] = useState(false)
+  const [deleteConfirmation, setDeleteConfirmation] = useState("")
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useEffect(() => {
     setPublicUrl(`${window.location.origin}/chatbots/${chatbot.id}/public`)
@@ -126,6 +143,27 @@ export function ChatbotDetail({ chatbot }: ChatbotDetailProps) {
     setTab("details")
   }
 
+  async function deleteChatbot() {
+    if (deleteConfirmation !== chatbot.name || isDeleting) return
+
+    setIsDeleting(true)
+    setDeleteError(null)
+    try {
+      const response = await fetch(`/api/chatbots/${chatbot.id}`, {
+        method: "DELETE",
+      })
+      const data = await response.json()
+      if (!response.ok)
+        throw new Error(data.error || "Could not delete chatbot.")
+      router.push("/app")
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error ? error.message : "Could not delete chatbot."
+      )
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <main className="mx-auto w-full max-w-4xl px-5 py-8 sm:px-10">
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
@@ -140,13 +178,9 @@ export function ChatbotDetail({ chatbot }: ChatbotDetailProps) {
             {chatbot.description}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setTab("test")}
-          className="h-10 border border-border px-4 text-sm font-semibold transition hover:bg-muted"
-        >
+        <Button type="button" onClick={() => setTab("test")} variant="outline">
           Test chat
-        </button>
+        </Button>
         <Button
           type="button"
           onClick={copyPublicLink}
@@ -290,23 +324,89 @@ export function ChatbotDetail({ chatbot }: ChatbotDetailProps) {
               )}
             </div>
             <form className="flex gap-2" onSubmit={sendMessage}>
-              <input
+              <Input
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
                 placeholder="Ask a question"
-                className="h-10 min-w-0 flex-1 border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="h-10 min-w-0 flex-1 border-input bg-background px-3"
               />
-              <button
+              <Button
                 type="submit"
                 disabled={isSending}
-                className="bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                size="icon"
+                aria-label={isSending ? "Sending message" : "Send message"}
+                title={isSending ? "Sending message" : "Send message"}
               >
-                {isSending ? "Sending..." : "Send"}
-              </button>
+                <IconSend />
+              </Button>
             </form>
           </CardContent>
         </Card>
       )}
+
+      <Card className="mt-10 border-destructive/40">
+        <CardHeader>
+          <CardTitle className="text-destructive">Danger zone</CardTitle>
+          <CardDescription>
+            Deleting this chatbot permanently removes its knowledge base files.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AlertDialog
+            onOpenChange={(open) => {
+              if (!open) {
+                setDeleteConfirmation("")
+                setDeleteError(null)
+              }
+            }}
+          >
+            <AlertDialogTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="destructive"
+                  aria-label="Delete chatbot"
+                />
+              }
+            >
+              <IconTrash />
+              Delete chatbot
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete {chatbot.name}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This permanently removes the chatbot and its uploaded files.
+                  Type <strong>{chatbot.name}</strong> to confirm.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <Input
+                value={deleteConfirmation}
+                onChange={(event) => setDeleteConfirmation(event.target.value)}
+                placeholder={chatbot.name}
+                aria-label="Type chatbot name to confirm deletion"
+                disabled={isDeleting}
+              />
+              {deleteError && (
+                <p className="text-sm text-destructive">{deleteError}</p>
+              )}
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={isDeleting}>
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  type="button"
+                  variant="destructive"
+                  disabled={deleteConfirmation !== chatbot.name || isDeleting}
+                  onClick={deleteChatbot}
+                >
+                  {isDeleting ? "Deleting..." : "Delete chatbot"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardContent>
+      </Card>
     </main>
   )
 }

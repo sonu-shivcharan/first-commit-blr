@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { ChatbotForm } from "@/components/chatbots/chatbot-form"
-import { FileUploader } from "@/components/chatbots/file-uploader"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -144,13 +144,9 @@ export function ChatbotWorkspace() {
                   Choose an assistant
                 </h2>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowForm(true)}
-                className="h-10 shrink-0 bg-emerald-700 px-4 text-sm font-semibold text-white transition-colors hover:bg-emerald-800 dark:bg-emerald-500 dark:text-zinc-950 dark:hover:bg-emerald-400"
-              >
+              <Button type="button" onClick={() => setShowForm(true)} size="sm">
                 Create chatbot
-              </button>
+              </Button>
             </div>
             <div className="grid gap-2">
               {chatbots.map((item) => (
@@ -178,11 +174,7 @@ export function ChatbotWorkspace() {
             </div>
           </div>
 
-          {chatbot && chatbot.dataSourceId ? (
-            <div className="w-full space-y-6">
-              <FileUploader chatbotId={chatbot.id} />
-            </div>
-          ) : chatbot ? (
+          {chatbot && !chatbot.dataSourceId ? (
             <Card>
               <CardContent className="p-8 text-center">
                 <p className="text-sm font-semibold">
@@ -208,13 +200,13 @@ export function ChatbotWorkspace() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <button
+            <Button
               type="button"
               onClick={() => setShowForm(true)}
-              className="h-11 w-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/80"
+              className="h-11 w-full"
             >
               Create chatbot
-            </button>
+            </Button>
           </CardContent>
         </Card>
       )}

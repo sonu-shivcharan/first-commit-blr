@@ -10,6 +10,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 type PublicChatProps = {
   chatbotId: string
@@ -134,24 +136,25 @@ export function PublicChat({ chatbotId, name, description }: PublicChatProps) {
           </div>
           <div className="shrink-0 border-t border-border bg-card p-3 sm:p-4">
             <div className="flex items-center gap-2">
-              <input
+              <Input
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
                 onKeyDown={handleMessageKeyDown}
                 placeholder="Ask a question"
                 aria-label="Your question"
-                className="h-11 min-w-0 flex-1 rounded-xl border border-input bg-background px-3.5 text-sm transition outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+                className="h-11 min-w-0 flex-1 rounded-xl border-input bg-background px-3.5"
               />
-              <button
+              <Button
                 type="button"
                 onClick={() => void sendMessage()}
                 disabled={isSending || !message.trim()}
                 aria-label={isSending ? "Sending message" : "Send message"}
                 title={isSending ? "Sending message" : "Send message"}
-                className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+                size="icon"
+                className="rounded-xl"
               >
                 <IconSend size={18} />
-              </button>
+              </Button>
             </div>
           </div>
         </CardContent>
