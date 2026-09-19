@@ -52,7 +52,7 @@ type ChatbotDetailProps = {
   chatbot: Chatbot
 }
 
-type Tab = "details" | "sources" | "test"
+type Tab = "details" | "sources" | "test" | "integrate"
 
 export function ChatbotDetail({ chatbot }: ChatbotDetailProps) {
   const router = useRouter()
@@ -273,7 +273,7 @@ export function ChatbotDetail({ chatbot }: ChatbotDetailProps) {
         role="tablist"
         aria-label="Chatbot sections"
       >
-        {(["details", "sources", "test"] as Tab[]).map((item) => (
+        {(["details", "sources", "test", "integrate"] as Tab[]).map((item) => (
           <button
             key={item}
             type="button"
@@ -415,6 +415,90 @@ export function ChatbotDetail({ chatbot }: ChatbotDetailProps) {
                 <IconSend />
               </Button>
             </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {tab === "integrate" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Integrate into your website</CardTitle>
+            <CardDescription>
+              Copy the embed code below and paste it into your website's HTML to display the chatbot.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <h3 className="mb-2 text-sm font-medium">Inline Embed</h3>
+                <div className="relative">
+                  <pre className="overflow-x-auto rounded-md bg-muted p-4 text-xs">
+                    {`<iframe\n  src="${publicUrl}"\n  width="100%"\n  height="500px"\n  frameborder="0"\n  style="border-radius: 8px; border: 1px solid #e5e7eb;"\n></iframe>`}
+                  </pre>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        `<iframe src="${publicUrl}" width="100%" height="500px" frameborder="0" style="border-radius: 8px; border: 1px solid #e5e7eb;"></iframe>`
+                      )
+                      setIsLinkCopied(true)
+                      setTimeout(() => setIsLinkCopied(false), 1800)
+                    }}
+                    size="sm"
+                    variant="secondary"
+                    className="absolute right-2 top-2 h-8 w-8 p-0"
+                  >
+                    {isLinkCopied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+                  </Button>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Drop this iframe anywhere on your page to embed the chat interface inline.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="mb-2 text-sm font-medium">Popup Widget (Chat Bubble)</h3>
+                <div className="relative">
+                  <pre className="overflow-x-auto rounded-md bg-muted p-4 text-xs">
+                    {`<!-- Chatbot Widget -->
+<div id="chatbot-widget-container">
+  <iframe
+    id="chatbot-iframe"
+    src="${publicUrl}"
+    frameborder="0"
+    style="display: none; position: fixed; bottom: 80px; right: 20px; width: 400px; height: 600px; max-width: 90vw; max-height: 80vh; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); z-index: 9999;"
+  ></iframe>
+  <button
+    id="chatbot-toggle-btn"
+    type="button"
+    style="position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; border-radius: 25px; background-color: #059669; color: white; border: none; cursor: pointer; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); z-index: 10000; display: flex; align-items: center; justify-content: center;"
+    onclick="var f = document.getElementById('chatbot-iframe'); if (f.style.display === 'none') { f.style.display = 'block'; } else { f.style.display = 'none'; }"
+  >
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>
+  </button>
+</div>`}
+                  </pre>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        `<!-- Chatbot Widget -->\n<div id="chatbot-widget-container">\n  <iframe\n    id="chatbot-iframe"\n    src="${publicUrl}"\n    frameborder="0"\n    style="display: none; position: fixed; bottom: 80px; right: 20px; width: 400px; height: 600px; max-width: 90vw; max-height: 80vh; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); z-index: 9999;"\n  ></iframe>\n  <button\n    id="chatbot-toggle-btn"\n    type="button"\n    style="position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; border-radius: 25px; background-color: #059669; color: white; border: none; cursor: pointer; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); z-index: 10000; display: flex; align-items: center; justify-content: center;"\n    onclick="var f = document.getElementById('chatbot-iframe'); if (f.style.display === 'none') { f.style.display = 'block'; } else { f.style.display = 'none'; }"\n  >\n    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>\n  </button>\n</div>`
+                      )
+                      setIsLinkCopied(true)
+                      setTimeout(() => setIsLinkCopied(false), 1800)
+                    }}
+                    size="sm"
+                    variant="secondary"
+                    className="absolute right-2 top-2 h-8 w-8 p-0"
+                  >
+                    {isLinkCopied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+                  </Button>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Paste this snippet before the closing &lt;/body&gt; tag to add a circular chat icon that opens the chatbot when clicked.
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
