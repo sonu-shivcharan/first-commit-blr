@@ -10,16 +10,23 @@ import {
   IconX,
 } from "@tabler/icons-react"
 
+import { Card } from "@/components/ui/card"
+
 const MAX_FILE_SIZE = 100 * 1024 * 1024
 
-type UploadState = "idle" | "uploading" | "success" | "error"
+type FileUploaderProps = {
+  chatbotId: string
+}
 
-export function FileUploader() {
+type UploadState = "idle" | "uploading" | "processing" | "success" | "error"
+
+export function FileUploader({ chatbotId }: FileUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
   const [uploadState, setUploadState] = useState<UploadState>("idle")
   const [progress, setProgress] = useState(0)
   const [uploadedKey, setUploadedKey] = useState<string | null>(null)
+  const [processingStep, setProcessingStep] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
 
@@ -37,6 +44,7 @@ export function FileUploader() {
     setError(null)
     setUploadedKey(null)
     setProgress(0)
+    setProcessingStep(0)
     setUploadState("idle")
   }
 
@@ -48,6 +56,7 @@ export function FileUploader() {
     setFile(null)
     setError(null)
     setProgress(0)
+    setProcessingStep(0)
     setUploadedKey(null)
     setUploadState("idle")
     if (inputRef.current) inputRef.current.value = ""
@@ -61,15 +70,18 @@ export function FileUploader() {
     setError(null)
 
     try {
-      const response = await fetch("/api/uploads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type || "application/octet-stream",
-          fileSize: file.size,
-        }),
-      })
+      const response = await fetch(
+        `/api/chatbots/${chatbotId}/documents/upload-url`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filename: file.name,
+            contentType: file.type || "application/octet-stream",
+            fileSize: file.size,
+          }),
+        }
+      )
 
       const data = await response.json()
       if (!response.ok)
@@ -99,7 +111,52 @@ export function FileUploader() {
 
       setProgress(100)
       setUploadedKey(data.key)
-      setUploadState("success")
+      setUploadState("processing")
+      setProcessingStep(1)
+
+      const ingestionResponse = await fetch(
+        `/api/chatbots/${chatbotId}/ingest`,
+        {
+          method: "POST",
+        }
+      )
+      const ingestionData = await ingestionResponse.json()
+      if (!ingestionResponse.ok) {
+        throw new Error(
+          ingestionData.error ||
+            "Could not add the file to your knowledge base."
+        )
+      }
+
+      const ingestionJobId = ingestionData.ingestionJob?.ingestionJobId
+      if (!ingestionJobId) {
+        throw new Error("We could not confirm that file processing started.")
+      }
+
+      setProcessingStep(2)
+      for (let attempt = 0; attempt < 40; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 3000))
+        const statusResponse = await fetch(
+          `/api/chatbots/${chatbotId}/ingest?jobId=${encodeURIComponent(ingestionJobId)}`
+        )
+        const statusData = await statusResponse.json()
+        if (!statusResponse.ok) {
+          throw new Error(
+            statusData.error || "Could not check file processing."
+          )
+        }
+
+        if (statusData.status === "COMPLETE") {
+          setProcessingStep(3)
+          setUploadState("success")
+          return
+        }
+        if (["FAILED", "STOPPED", "DELETING"].includes(statusData.status)) {
+          throw new Error("We could not finish preparing this file.")
+        }
+      }
+
+      throw new Error("File processing is taking longer than expected.")
     } catch (uploadError) {
       setError(
         uploadError instanceof Error
@@ -110,10 +167,10 @@ export function FileUploader() {
     }
   }
 
-  const isUploading = uploadState === "uploading"
+  const isBusy = uploadState === "uploading" || uploadState === "processing"
 
   return (
-    <section className="w-full max-w-xl rounded-3xl border border-black/10 bg-white/90 p-2 shadow-[0_24px_80px_-32px_rgba(15,23,42,0.35)] backdrop-blur dark:border-white/10 dark:bg-zinc-900/90">
+    <Card className="w-full max-w-xl p-2">
       <div
         className={`rounded-[1.35rem] border border-dashed p-8 transition-colors sm:p-12 ${
           isDragging
@@ -137,7 +194,7 @@ export function FileUploader() {
           className="hidden"
           type="file"
           onChange={handleFileInput}
-          disabled={isUploading}
+          disabled={isBusy}
         />
 
         {uploadState === "success" ? (
@@ -174,7 +231,7 @@ export function FileUploader() {
                   {formatFileSize(file.size)}
                 </p>
               </div>
-              {!isUploading && (
+              {!isBusy && (
                 <button
                   type="button"
                   onClick={clearFile}
@@ -186,7 +243,7 @@ export function FileUploader() {
               )}
             </div>
 
-            {isUploading && (
+            {uploadState === "uploading" && (
               <div className="mt-7">
                 <div className="mb-2 flex justify-between text-xs font-medium text-zinc-500">
                   <span>Uploading to S3</span>
@@ -201,6 +258,27 @@ export function FileUploader() {
               </div>
             )}
 
+            {uploadState === "processing" && (
+              <div className="mt-7 space-y-3 rounded-xl bg-emerald-50 p-4 dark:bg-emerald-950/30">
+                <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
+                  {processingStep === 1
+                    ? "Getting your file ready..."
+                    : processingStep === 2
+                      ? "Adding your file to the knowledge base..."
+                      : "Finishing up..."}
+                </p>
+                <div className="h-2 overflow-hidden rounded-full bg-emerald-100 dark:bg-emerald-900">
+                  <div
+                    className="h-full rounded-full bg-emerald-500 transition-[width] duration-500"
+                    style={{ width: `${Math.max(25, processingStep * 25)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                  You can leave this page open. We are taking care of the rest.
+                </p>
+              </div>
+            )}
+
             {uploadState === "error" && (
               <p className="mt-5 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
                 {error}
@@ -210,16 +288,18 @@ export function FileUploader() {
             <button
               type="button"
               onClick={uploadFile}
-              disabled={isUploading}
+              disabled={isBusy}
               className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-wait disabled:opacity-70 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
             >
-              {isUploading ? (
+              {isBusy ? (
                 <IconLoader2 className="animate-spin" size={18} />
               ) : (
                 <IconCloudUpload size={18} />
               )}
-              {isUploading
-                ? "Uploading..."
+              {isBusy
+                ? uploadState === "uploading"
+                  ? "Uploading..."
+                  : "Preparing file..."
                 : uploadState === "error"
                   ? "Try again"
                   : "Upload file"}
@@ -249,7 +329,7 @@ export function FileUploader() {
           </div>
         )}
       </div>
-    </section>
+    </Card>
   )
 }
 
