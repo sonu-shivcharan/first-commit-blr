@@ -1,7 +1,14 @@
 "use client"
 
 import { FormEvent, useEffect, useState } from "react"
-import { IconCheck, IconCopy, IconSend, IconTrash } from "@tabler/icons-react"
+import {
+  IconAlertCircle,
+  IconCheck,
+  IconCopy,
+  IconSend,
+  IconTrash,
+  IconX,
+} from "@tabler/icons-react"
 import { useRouter } from "next/navigation"
 
 import { FileUploader } from "@/components/chatbots/file-uploader"
@@ -52,6 +59,7 @@ export function ChatbotDetail({ chatbot }: ChatbotDetailProps) {
   const [tab, setTab] = useState<Tab>("details")
   const [files, setFiles] = useState<SourceFile[]>([])
   const [fileError, setFileError] = useState<string | null>(null)
+  const [dataSourcePrompt, setDataSourcePrompt] = useState<string | null>(null)
   const [message, setMessage] = useState("")
   const [messages, setMessages] = useState<
     { role: "user" | "bot"; text: string }[]
@@ -73,7 +81,16 @@ export function ChatbotDetail({ chatbot }: ChatbotDetailProps) {
       const response = await fetch(`/api/chatbots/${chatbot.id}/documents`)
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || "Could not load files.")
-      setFiles(data as SourceFile[])
+      const loadedFiles = (data as SourceFile[]) || []
+      setFiles(loadedFiles)
+      if (loadedFiles.length === 0) {
+        setTab("sources")
+        setDataSourcePrompt(
+          "At least one datasource is required. Please add a data source first."
+        )
+      } else {
+        setDataSourcePrompt(null)
+      }
     } catch (error) {
       setFileError(
         error instanceof Error ? error.message : "Could not load files."
@@ -85,8 +102,37 @@ export function ChatbotDetail({ chatbot }: ChatbotDetailProps) {
     loadFiles()
   }, [chatbot.id])
 
+  function handleTabChange(nextTab: Tab) {
+    if (nextTab === "test" && files.length === 0) {
+      setTab("sources")
+      setDataSourcePrompt(
+        "At least one datasource is required. Please add a data source first."
+      )
+      return
+    }
+    setTab(nextTab)
+  }
+
+  function handleTestChatClick() {
+    if (files.length === 0) {
+      setTab("sources")
+      setDataSourcePrompt(
+        "At least one datasource is required. Please add a data source first."
+      )
+      return
+    }
+    setTab("test")
+  }
+
   async function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (files.length === 0) {
+      setTab("sources")
+      setDataSourcePrompt(
+        "At least one datasource is required. Please add a data source first."
+      )
+      return
+    }
     const nextMessage = message.trim()
     if (!nextMessage || isSending) return
 
@@ -178,7 +224,11 @@ export function ChatbotDetail({ chatbot }: ChatbotDetailProps) {
             {chatbot.description}
           </p>
         </div>
-        <Button type="button" onClick={() => setTab("test")} variant="outline">
+        <Button
+          type="button"
+          onClick={handleTestChatClick}
+          variant="outline"
+        >
           Test chat
         </Button>
         <Button
@@ -193,6 +243,31 @@ export function ChatbotDetail({ chatbot }: ChatbotDetailProps) {
         </Button>
       </div>
 
+      {dataSourcePrompt && (
+        <div
+          role="alert"
+          className="mb-6 flex items-start justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200"
+        >
+          <div className="flex items-start gap-3">
+            <IconAlertCircle className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div>
+              <p className="text-sm font-semibold">Data source required</p>
+              <p className="mt-0.5 text-sm text-amber-800 dark:text-amber-300">
+                {dataSourcePrompt}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDataSourcePrompt(null)}
+            className="rounded p-1 text-amber-700 hover:bg-amber-500/20 hover:text-amber-900 dark:text-amber-400 dark:hover:bg-amber-500/20 dark:hover:text-amber-200"
+            aria-label="Dismiss alert"
+          >
+            <IconX className="size-4" />
+          </button>
+        </div>
+      )}
+
       <div
         className="mb-6 flex gap-1 border-b border-border"
         role="tablist"
@@ -204,7 +279,7 @@ export function ChatbotDetail({ chatbot }: ChatbotDetailProps) {
             type="button"
             role="tab"
             aria-selected={tab === item}
-            onClick={() => setTab(item)}
+            onClick={() => handleTabChange(item)}
             className={`border-b-2 px-4 py-3 text-sm font-medium capitalize transition ${
               tab === item
                 ? "border-primary text-primary"
@@ -274,7 +349,7 @@ export function ChatbotDetail({ chatbot }: ChatbotDetailProps) {
                 <p className="text-sm text-destructive">{fileError}</p>
               ) : files.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  No files uploaded yet.
+                  No files uploaded yet. At least one datasource is required.
                 </p>
               ) : (
                 <div className="divide-y divide-border">
